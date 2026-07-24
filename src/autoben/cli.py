@@ -71,7 +71,7 @@ def main(argv=None):
         if args.dry_run:
             print(f"{name}: {len(grp)} line item(s)")
             continue
-        gen.make_pdf(name, grp)
+        gen.save_pdf(name, grp)
         count += 1
         if not args.quiet:
             print(f"wrote PDF for {name} ({len(grp)} line item(s))")

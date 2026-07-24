@@ -1,25 +1,28 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from lxml import html as lh
 from lxml.cssselect import CSSSelector
 from pypdf import PdfWriter
+
 
 class PDFGenerator:
     def __init__(self, filepath, porfpath):
         self.PATH_TO_HTML = filepath
         self.PATH_TO_PORF = porfpath
 
+        self.PERSON = 'AASHISH'
         self.DT_TODAY = pd.to_datetime('today')
         self.COLFIELDS = ['DescriptionRow', 'ItemRow', 'Extended PriceRow', 'QtyRow', 'Unit PriceRow']
         self.ROWFIELDS = ['A', 'B', 'C', 'D'] + np.r_[1:31].astype(str).tolist()
 
-        df_list = pd.read_html(self.PATH_TO_HTML, match="USD", flavor='bs4')
-        cols = df_list[-2].rename(columns={df_list[-2].columns[0]:'Supplier Name'})
+        df_list = pd.read_html(self.PATH_TO_HTML, attrs={'id':'LinesTableRN:Content'})
+        cols = df_list[-1]
+        cols = cols.rename(columns={cols.columns[0]:'Supplier Name'})
         items = df_list[-1]
         items.columns = cols.columns
         self.items = (
             items
-            .iloc[:-2]
+            .iloc[:-1]
             .drop(columns="Details")
             .assign(Price=lambda x: x.Price.str.replace(r'[^0-9.]', '', regex=True).astype(float))
             .assign(Quantity= lambda x: x.Quantity.astype(int))
@@ -30,7 +33,7 @@ class PDFGenerator:
         sel = CSSSelector("h1.x1f")
         self.REQNO = sel(tree)[0].text_content().strip().split()[-1]
 
-    def make_pdf(self, name, grp):
+    def save_pdf(self, name, grp):
         writer = PdfWriter(self.PATH_TO_PORF)
         group = grp.reset_index(drop=True)
         grid = np.meshgrid(self.COLFIELDS, self.ROWFIELDS[:len(group)], indexing='ij')
@@ -52,3 +55,18 @@ class PDFGenerator:
         writer.write(f"{self.DT_TODAY.strftime('%Y%m%d')} {name.replace('/', "").replace("\\", "")}.pdf")
 
         return fd
+
+    def save_excel(self):
+        items = self.items.copy()
+        items['_blank'] = ''
+        items['Date'] = self.DT_TODAY.strftime('%m/%d/%Y')
+        items['BenBuys'] = 'Y'
+        items['ReqNo'] = self.REQNO
+        items['Person'] = self.PERSON
+
+
+        items = items[['Date', '_blank', 'Supplier Name', 'Description', 'BenBuys',
+            'Supplier  Item  Number', 'Price', 'Quantity', 'Amount  (USD)',
+            '_blank', 'ReqNo', '_blank', 'Person']]
+
+        items.to_excel(f"{self.DT_TODAY.strftime('%Y%m%d')}.xlsx", index=False)
