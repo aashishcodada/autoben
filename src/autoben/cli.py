@@ -1,10 +1,15 @@
 import argparse
 import sys
 from pathlib import Path
+
 from .PDFgenerator import PDFGenerator
 
+
 def main(argv=None):
-    DEFAULT_TEMPLATE = Path(r"G:\My Drive\weber\misc\ordering\Purchase Order Request Form.pdf")
+    DEFAULT_TEMPLATE = Path(
+        r"/Users/Aashu/Library/CloudStorage/GoogleDrive-aashishc975@gmail.com/My Drive/"
+        r"weber/misc/ordering/Purchase Order Request Form.pdf"
+    )
     parser = argparse.ArgumentParser(
         description="Generate filled purchase order PDFs from a requisition HTML export.",
     )
