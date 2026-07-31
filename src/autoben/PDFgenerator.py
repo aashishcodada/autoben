@@ -22,11 +22,10 @@ class PDFGenerator:
         items.columns = cols.columns
         self.items = (
             items
+            [['Supplier Name', 'Description', 'Supplier Item Number', 'Amount (USD)', 'Quantity', 'Price']]
             .iloc[:-1]
-            .drop(columns="Details")
-            .assign(Price=lambda x: x.Price.str.replace(r'[^0-9.]', '', regex=True).astype(float))
-            .assign(Quantity= lambda x: x.Quantity.astype(int))
-            .fillna('')
+            .assign(Price=lambda x: x.Price.str.replace(r'[^0-9.]', '', regex=True).astype('Float64'))
+            .assign(Quantity= lambda x: x.Quantity.astype('Int64'))
         )
 
         tree = lh.parse(self.PATH_TO_HTML).getroot()
@@ -43,10 +42,10 @@ class PDFGenerator:
             'Vendor Name': name,
             'Req#': self.REQNO,
             'Date1_af_date': self.DT_TODAY.strftime('%m/%d/%Y'),
-            'Extended PriceGrand Total': f"{group['Amount  (USD)'].sum():.2f}",
-            'PAGE 2_Total': f"{group['Amount  (USD)'].iloc[4:].sum():.2f}"
+            'Extended PriceGrand Total': f"{group['Amount (USD)'].sum():.2f}",
+            'PAGE 2_Total': f"{group['Amount (USD)'].iloc[4:].sum():.2f}"
         }
-        form_data = group.iloc[:, 1:].values
+        form_data = group.iloc[:, 1:].astype(str).fillna('').values
         fd.update(dict(zip(fields.flatten(), form_data.flatten())))
 
         for page in writer.pages:
@@ -64,9 +63,10 @@ class PDFGenerator:
         items['ReqNo'] = self.REQNO
         items['Person'] = self.PERSON
 
+        items = items.astype(str).fillna('')
 
         items = items[['Date', '_blank', 'Supplier Name', 'Description', 'BenBuys',
-            'Supplier  Item  Number', 'Price', 'Quantity', 'Amount  (USD)',
+            'Supplier Item Number', 'Price', 'Quantity', 'Amount (USD)',
             '_blank', 'ReqNo', '_blank', 'Person']]
 
         items.to_excel(f"{self.DT_TODAY.strftime('%Y%m%d')}.xlsx", index=False)

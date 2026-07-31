@@ -14,9 +14,10 @@ def main(argv=None):
         description="Generate filled purchase order PDFs from a requisition HTML export.",
     )
     parser.add_argument(
-        "html",
+        "--html",
         type=Path,
-        help="Path to the requisition HTML file.",
+        default=Path.cwd() / "Oracle iProcurement_ Requisitions.html",
+        help="Path to the requisition HTML file. (default: Oracle iProcurement_ Requisitions.html in current directory)",
     )
     parser.add_argument(
         "-t", "--template",
@@ -75,6 +76,10 @@ def main(argv=None):
         count += 1
         if not args.quiet:
             print(f"wrote PDF for {name} ({len(grp)} line item(s))")
+
+    gen.save_excel()
+    print(f"wrote EXCEL file for {len(gen.items)} line item(s)")
+    count += 1
 
     if not args.dry_run and not args.quiet:
         print(f"{count} file(s) written to {args.outdir}")
