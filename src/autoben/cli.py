@@ -5,11 +5,34 @@ from pathlib import Path
 from .PDFgenerator import PDFGenerator
 
 
+def save_all(gen:PDFGenerator, args:argparse.Namespace, parser:argparse.ArgumentParser):
+    groups = gen.items.groupby("Supplier Name", sort=True)
+    if args.vendors:
+        wanted = set(args.vendors)
+        groups = [(n, g) for n, g in groups if n in wanted]
+        missing = wanted - {n for n, _ in groups}
+        if missing:
+            parser.error(f"vendor(s) not found: {', '.join(sorted(missing))}")
+
+    count = 0
+    for name, grp in groups:
+        if args.dry_run:
+            print(f"{name}: {len(grp)} line item(s)")
+            continue
+        gen.save_pdf(name, grp)
+        count += 1
+        if not args.quiet:
+            print(f"wrote PDF for {name} ({len(grp)} line item(s))")
+
+    gen.save_excel()
+    print(f"wrote EXCEL file for {len(gen.items)} line item(s)")
+    count += 1
+
+    if not args.dry_run and not args.quiet:
+        print(f"{count} file(s) written to {args.outdir}")
+
+
 def main(argv=None):
-    DEFAULT_TEMPLATE = Path(
-        r"/Users/Aashu/Library/CloudStorage/GoogleDrive-aashishc975@gmail.com/My Drive/"
-        r"weber/misc/ordering/Purchase Order Request Form.pdf"
-    )
     parser = argparse.ArgumentParser(
         description="Generate filled purchase order PDFs from a requisition HTML export.",
     )
@@ -22,8 +45,8 @@ def main(argv=None):
     parser.add_argument(
         "-t", "--template",
         type=Path,
-        default=DEFAULT_TEMPLATE,
-        help=f"Path to the blank PORF PDF template. (default: {DEFAULT_TEMPLATE.name})",
+        default=Path.cwd() / "Purchase Order Request Form.pdf",
+        help="Path to the blank PORF PDF template. (default: Purchase Order Request Form.pdf in current directory)",
     )
     parser.add_argument(
         "-o", "--outdir",
@@ -59,30 +82,7 @@ def main(argv=None):
 
     gen = PDFGenerator(args.html, args.template)
 
-    groups = gen.items.groupby("Supplier Name", sort=True)
-    if args.vendors:
-        wanted = set(args.vendors)
-        groups = [(n, g) for n, g in groups if n in wanted]
-        missing = wanted - {n for n, _ in groups}
-        if missing:
-            parser.error(f"vendor(s) not found: {', '.join(sorted(missing))}")
-
-    count = 0
-    for name, grp in groups:
-        if args.dry_run:
-            print(f"{name}: {len(grp)} line item(s)")
-            continue
-        gen.save_pdf(name, grp)
-        count += 1
-        if not args.quiet:
-            print(f"wrote PDF for {name} ({len(grp)} line item(s))")
-
-    gen.save_excel()
-    print(f"wrote EXCEL file for {len(gen.items)} line item(s)")
-    count += 1
-
-    if not args.dry_run and not args.quiet:
-        print(f"{count} file(s) written to {args.outdir}")
+    save_all(gen, args, parser)
 
     return 0
 

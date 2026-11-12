@@ -24,8 +24,13 @@ class PDFGenerator:
             items
             [['Supplier Name', 'Description', 'Supplier Item Number', 'Amount (USD)', 'Quantity', 'Price']]
             .iloc[:-1]
-            .assign(Price=lambda x: x.Price.str.replace(r'[^0-9.]', '', regex=True).astype('Float64'))
-            .assign(Quantity= lambda x: x.Quantity.astype('Int64'))
+        )
+        self.items['Quantity'] = self.items['Quantity'].astype('Int64').fillna(1)
+        self.items["Price"] = (
+            self.items["Price"]
+            .str.replace(r"[^0-9.]", "", regex=True)
+            .astype("Float64")
+            .combine_first(self.items["Amount (USD)"])
         )
 
         tree = lh.parse(self.PATH_TO_HTML).getroot()
